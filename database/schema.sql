@@ -87,6 +87,20 @@ CREATE INDEX idx_business_profiles_category ON business_profiles(category);
 CREATE INDEX idx_business_profiles_verification_status ON business_profiles(verification_status);
 CREATE INDEX idx_business_profiles_location ON business_profiles(city, state);
 
+CREATE TABLE business_services (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  price DECIMAL(12, 2),
+  duration_hours INT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_business_services_business_id ON business_services(business_id);
+
 -- Places (main tourism places/destinations)
 CREATE TABLE places (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
