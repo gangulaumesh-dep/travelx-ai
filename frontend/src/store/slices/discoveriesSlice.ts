@@ -7,6 +7,7 @@ interface DiscoveriesState {
   filters: {
     category?: string;
     status?: string;
+    city?: string;
   };
   isLoading: boolean;
   error: string | null;
@@ -37,7 +38,7 @@ const discoveriesSlice = createSlice({
     addDiscovery: (state, action: PayloadAction<Discovery>) => {
       state.items.unshift(action.payload);
     },
-    setFilters: (state, action: PayloadAction<{ category?: string; status?: string }>) => {
+    setFilters: (state, action: PayloadAction<{ category?: string; status?: string; city?: string }>) => {
       state.filters = action.payload;
     },
     setError: (state, action: PayloadAction<string>) => {

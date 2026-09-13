@@ -12,18 +12,24 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import TouristDashboard from './pages/tourist/Dashboard';
 import DiscoverPage from './pages/tourist/Discover';
+import DiscoveryDetail from './pages/tourist/DiscoveryDetail';
 import DiscoverNewPlace from './pages/tourist/DiscoverNewPlace';
 import TripPlanner from './pages/tourist/TripPlanner';
 import MyTrips from './pages/tourist/MyTrips';
 import GuidesBusiness from './pages/tourist/GuidesBusiness';
 import Safety from './pages/tourist/Safety';
+import TravelServices from './pages/tourist/TravelServices';
+import Hospitals from './pages/tourist/Hospitals';
 import GuideDashboard from './pages/guide/Dashboard';
 import GuideProfile from './pages/guide/Profile';
+import GuideDetail from './pages/tourist/GuideDetail';
 import BusinessDashboard from './pages/business/Dashboard';
 import BusinessProfile from './pages/business/Profile';
+import BusinessDetail from './pages/tourist/BusinessDetail';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminDiscoveries from './pages/admin/Discoveries';
 import AdminAnalytics from './pages/admin/Analytics';
+import AdminPeople from './pages/admin/People';
 
 function AppContent() {
   const dispatch = useAppDispatch();
@@ -56,11 +62,16 @@ function AppContent() {
         <Route path="/register" element={isAuthenticated ? <Navigate to={`/${user?.role}`} /> : <Register />} />
         <Route path="/tourist" element={isAuthenticated && user?.role === 'tourist' ? <TouristDashboard /> : <Navigate to="/login" />} />
         <Route path="/discover" element={isAuthenticated && user?.role === 'tourist' ? <DiscoverPage /> : <Navigate to="/login" />} />
+        <Route path="/discover/:id" element={isAuthenticated && user?.role === 'tourist' ? <DiscoveryDetail /> : <Navigate to="/login" />} />
         <Route path="/discover/new" element={isAuthenticated && user?.role === 'tourist' ? <DiscoverNewPlace /> : <Navigate to="/login" />} />
         <Route path="/planner" element={isAuthenticated && user?.role === 'tourist' ? <TripPlanner /> : <Navigate to="/login" />} />
         <Route path="/my-trips" element={isAuthenticated && user?.role === 'tourist' ? <MyTrips /> : <Navigate to="/login" />} />
         <Route path="/guides-business" element={isAuthenticated && user?.role === 'tourist' ? <GuidesBusiness /> : <Navigate to="/login" />} />
+        <Route path="/guides/:id" element={isAuthenticated && user?.role === 'tourist' ? <GuideDetail /> : <Navigate to="/login" />} />
+        <Route path="/businesses/:id" element={isAuthenticated && user?.role === 'tourist' ? <BusinessDetail /> : <Navigate to="/login" />} />
         <Route path="/safety" element={isAuthenticated && user?.role === 'tourist' ? <Safety /> : <Navigate to="/login" />} />
+        <Route path="/services" element={isAuthenticated && user?.role === 'tourist' ? <TravelServices /> : <Navigate to="/login" />} />
+        <Route path="/hospitals" element={isAuthenticated && user?.role === 'tourist' ? <Hospitals /> : <Navigate to="/login" />} />
         <Route path="/guide" element={isAuthenticated && user?.role === 'guide' ? <GuideDashboard /> : <Navigate to="/login" />} />
         <Route path="/guide/profile" element={isAuthenticated && user?.role === 'guide' ? <GuideProfile /> : <Navigate to="/login" />} />
         <Route path="/business" element={isAuthenticated && user?.role === 'business' ? <BusinessDashboard /> : <Navigate to="/login" />} />
@@ -68,6 +79,7 @@ function AppContent() {
         <Route path="/admin" element={isAuthenticated && user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />} />
         <Route path="/admin/discoveries" element={isAuthenticated && user?.role === 'admin' ? <AdminDiscoveries /> : <Navigate to="/login" />} />
         <Route path="/admin/analytics" element={isAuthenticated && user?.role === 'admin' ? <AdminAnalytics /> : <Navigate to="/login" />} />
+        <Route path="/admin/people" element={isAuthenticated && user?.role === 'admin' ? <AdminPeople /> : <Navigate to="/login" />} />
       </Routes>
     </Router>
   );

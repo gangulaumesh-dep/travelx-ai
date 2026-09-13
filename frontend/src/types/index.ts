@@ -52,6 +52,14 @@ export interface Trip {
   days?: TripDay[];
   created_at: string;
   updated_at: string;
+  metrics?: {
+    relevant_places: number;
+    included_places: number;
+    coverage_percent: number;
+    remaining_places: number;
+    extra_days: number;
+  };
+  directions_url?: string;
 }
 
 export interface TripDay {

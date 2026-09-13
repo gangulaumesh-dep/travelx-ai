@@ -1,0 +1,12 @@
+import React, { useEffect, useState } from 'react';
+import PageShell from '../../components/PageShell';
+import { bookingsAPI } from '../../services/api';
+
+interface Booking { id: string; title: string; description?: string; start_date: string; status: string; tourist_first_name?: string; tourist_last_name?: string; }
+export default function Dashboard() {
+  const [items, setItems] = useState<Booking[]>([]); const [state, setState] = useState({ loading: true, error: '' });
+  const load = () => { setState({ loading: true, error: '' }); bookingsAPI.getAll().then(({ data }) => setItems(data.items || [])).catch(() => setState({ loading: false, error: 'Could not load booking requests.' })).finally(() => setState((current) => ({ ...current, loading: false }))); };
+  useEffect(() => { load(); }, []);
+  const update = async (id: string, status: string) => { try { const { data } = await bookingsAPI.updateStatus(id, status); setItems((current) => current.map((item) => item.id === id ? { ...item, ...data } : item)); } catch { setState((current) => ({ ...current, error: 'Could not update this request.' })); } };
+  return <PageShell title="Guide dashboard"><div className="mb-6 rounded-xl bg-teal-50 p-5"><h2 className="font-semibold">Booking requests</h2><p className="text-sm text-slate-600">Review and respond to travelers requesting your services.</p></div>{state.loading && <p role="status">Loading requests…</p>}{state.error && <div className="rounded bg-red-50 p-3 text-red-700">{state.error} <button className="underline" onClick={load}>Retry</button></div>}{!state.loading && !state.error && items.length === 0 && <p className="rounded bg-white p-6 text-slate-600">No booking requests yet.</p>}<div className="grid gap-4 md:grid-cols-2">{items.map((item) => <article className="rounded-xl bg-white p-5 shadow" key={item.id}><h2 className="font-semibold">{item.title}</h2><p className="text-sm text-slate-500">From {item.tourist_first_name || 'traveler'} · {item.start_date}</p><p className="mt-2">{item.description || 'No additional details.'}</p><p className="mt-2 text-sm font-medium">Status: {item.status}</p>{item.status === 'pending' && <div className="mt-4 flex gap-2"><button className="rounded bg-teal-700 px-3 py-2 text-sm text-white" onClick={() => void update(item.id, 'confirmed')}>Accept</button><button className="rounded border px-3 py-2 text-sm" onClick={() => void update(item.id, 'cancelled')}>Decline</button></div>}</article>)}</div></PageShell>;
+}
