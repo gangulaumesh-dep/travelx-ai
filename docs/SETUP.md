@@ -73,6 +73,9 @@ The migration command reads `database/schema.sql`. Then run `npm run seed` to cr
 the four demo accounts and a sample place. The API uses a rule-based itinerary
 generator by default; no AI provider key is required to run the MVP.
 
+Run the migration again after pulling schema changes such as `business_services`;
+the migration script applies the complete schema to a fresh database.
+
 Discovery submissions accept up to five JPEG, PNG, or WebP images. In development
 they are stored in `backend/uploads` and served by the API at `/uploads/...`.
 Keep that directory on persistent storage in production.

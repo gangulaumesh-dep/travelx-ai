@@ -23,6 +23,7 @@ export default function PageShell({ title, children }: PageShellProps) {
             {user?.role === 'tourist' && <><Link to="/discover">Discover</Link><Link to="/guides-business">Guides</Link><Link to="/planner">Plan a trip</Link><Link to="/my-trips">My trips</Link></>}
             {user?.role === 'guide' && <><Link to="/guide">Dashboard</Link><Link to="/guide/profile">Profile</Link></>}
             {user?.role === 'business' && <><Link to="/business">Dashboard</Link><Link to="/business/profile">Profile</Link></>}
+            {user?.role === 'admin' && <><Link to="/admin">Dashboard</Link><Link to="/admin/discoveries">Discoveries</Link><Link to="/admin/people">People</Link><Link to="/admin/analytics">Analytics</Link></>}
             <span className="text-slate-500">{user?.first_name || user?.email}</span>
             <button className="rounded border px-3 py-1" onClick={() => { dispatch(logout()); navigate('/login'); }}>Log out</button>
           </nav>

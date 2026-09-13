@@ -27,6 +27,7 @@ import BusinessDetail from './pages/tourist/BusinessDetail';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminDiscoveries from './pages/admin/Discoveries';
 import AdminAnalytics from './pages/admin/Analytics';
+import AdminPeople from './pages/admin/People';
 
 function AppContent() {
   const dispatch = useAppDispatch();
@@ -74,6 +75,7 @@ function AppContent() {
         <Route path="/admin" element={isAuthenticated && user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />} />
         <Route path="/admin/discoveries" element={isAuthenticated && user?.role === 'admin' ? <AdminDiscoveries /> : <Navigate to="/login" />} />
         <Route path="/admin/analytics" element={isAuthenticated && user?.role === 'admin' ? <AdminAnalytics /> : <Navigate to="/login" />} />
+        <Route path="/admin/people" element={isAuthenticated && user?.role === 'admin' ? <AdminPeople /> : <Navigate to="/login" />} />
       </Routes>
     </Router>
   );
