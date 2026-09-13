@@ -1,0 +1,1 @@
+import React from 'react'; import PageShell from '../../components/PageShell'; export default function Discoveries() { return <PageShell title="Discovery moderation"><p className="rounded-xl bg-white p-6 shadow">Pending submissions can be reviewed through the admin API.</p></PageShell>; }

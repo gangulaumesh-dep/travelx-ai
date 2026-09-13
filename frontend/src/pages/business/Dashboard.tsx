@@ -1,0 +1,1 @@
+import React from 'react'; import PageShell from '../../components/PageShell'; export default function Dashboard() { return <PageShell title="Business dashboard"><p className="rounded-xl bg-white p-6 shadow">Manage your listing and traveler enquiries.</p></PageShell>; }

@@ -1,0 +1,1 @@
+import React from 'react'; import PageShell from '../../components/PageShell'; export default function Profile() { return <PageShell title="Business profile"><p className="rounded-xl bg-white p-6 shadow">Your business profile is ready to be completed.</p></PageShell>; }

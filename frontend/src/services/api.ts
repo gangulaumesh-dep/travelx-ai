@@ -39,10 +39,7 @@ export const authAPI = {
 export const discoveriesAPI = {
   getAll: (params?: any) => api.get('/discoveries', { params }),
   getById: (id: string) => api.get(`/discoveries/${id}`),
-  create: (data: FormData) =>
-    api.post('/discoveries', data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  create: (data: any) => api.post('/discoveries', data),
   verify: (id: string, data: any) => api.patch(`/discoveries/${id}/verify`, data),
 };
 

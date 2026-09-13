@@ -63,11 +63,15 @@ CREATE DATABASE travelx_ai;
 psql -U postgres -d travelx_ai -f ../database/schema.sql
 ```
 
-#### Or use migration script
+#### Or use migration script (from `backend`)
 
 ```bash
 npm run migrate
 ```
+
+The migration command reads `database/schema.sql`. Then run `npm run seed` to create
+the four demo accounts and a sample place. The API uses a rule-based itinerary
+generator by default; no AI provider key is required to run the MVP.
 
 ### 4. Seed Demo Data
 

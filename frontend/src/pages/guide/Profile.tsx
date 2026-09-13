@@ -1,0 +1,1 @@
+import React from 'react'; import PageShell from '../../components/PageShell'; export default function Profile() { return <PageShell title="Guide profile"><p className="rounded-xl bg-white p-6 shadow">Your guide profile is ready to be completed.</p></PageShell>; }

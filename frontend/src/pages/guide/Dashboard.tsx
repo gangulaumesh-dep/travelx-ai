@@ -1,0 +1,1 @@
+import React from 'react'; import PageShell from '../../components/PageShell'; export default function Dashboard() { return <PageShell title="Guide dashboard"><p className="rounded-xl bg-white p-6 shadow">Manage your profile and connect with travelers.</p></PageShell>; }
