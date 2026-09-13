@@ -124,6 +124,39 @@ CREATE INDEX idx_places_category ON places(category);
 CREATE INDEX idx_places_location ON places(city, state);
 CREATE INDEX idx_places_featured ON places(is_featured);
 
+CREATE TABLE travel_services (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  service_type VARCHAR(30) NOT NULL CHECK (service_type IN ('flight', 'hotel', 'train', 'bus', 'cab', 'holiday')),
+  provider_name VARCHAR(255) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  city VARCHAR(100),
+  price_from DECIMAL(12, 2),
+  booking_url VARCHAR(500),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_travel_services_type ON travel_services(service_type);
+CREATE INDEX idx_travel_services_city ON travel_services(city);
+
+CREATE TABLE hospitals (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  city VARCHAR(100) NOT NULL,
+  state VARCHAR(100),
+  address TEXT,
+  phone VARCHAR(30),
+  emergency_phone VARCHAR(30),
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  website VARCHAR(500),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_hospitals_city ON hospitals(city);
+
 -- Discoveries (community-submitted places)
 CREATE TABLE discoveries (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -210,6 +243,7 @@ CREATE TABLE bookings (
   tourist_id UUID NOT NULL REFERENCES users(id),
   guide_id UUID REFERENCES users(id),
   business_id UUID REFERENCES users(id),
+  service_id UUID REFERENCES travel_services(id),
   booking_type VARCHAR(50), -- guide, experience, hotel, tour
   title VARCHAR(255),
   description TEXT,

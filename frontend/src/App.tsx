@@ -18,6 +18,8 @@ import TripPlanner from './pages/tourist/TripPlanner';
 import MyTrips from './pages/tourist/MyTrips';
 import GuidesBusiness from './pages/tourist/GuidesBusiness';
 import Safety from './pages/tourist/Safety';
+import TravelServices from './pages/tourist/TravelServices';
+import Hospitals from './pages/tourist/Hospitals';
 import GuideDashboard from './pages/guide/Dashboard';
 import GuideProfile from './pages/guide/Profile';
 import GuideDetail from './pages/tourist/GuideDetail';
@@ -68,6 +70,8 @@ function AppContent() {
         <Route path="/guides/:id" element={isAuthenticated && user?.role === 'tourist' ? <GuideDetail /> : <Navigate to="/login" />} />
         <Route path="/businesses/:id" element={isAuthenticated && user?.role === 'tourist' ? <BusinessDetail /> : <Navigate to="/login" />} />
         <Route path="/safety" element={isAuthenticated && user?.role === 'tourist' ? <Safety /> : <Navigate to="/login" />} />
+        <Route path="/services" element={isAuthenticated && user?.role === 'tourist' ? <TravelServices /> : <Navigate to="/login" />} />
+        <Route path="/hospitals" element={isAuthenticated && user?.role === 'tourist' ? <Hospitals /> : <Navigate to="/login" />} />
         <Route path="/guide" element={isAuthenticated && user?.role === 'guide' ? <GuideDashboard /> : <Navigate to="/login" />} />
         <Route path="/guide/profile" element={isAuthenticated && user?.role === 'guide' ? <GuideProfile /> : <Navigate to="/login" />} />
         <Route path="/business" element={isAuthenticated && user?.role === 'business' ? <BusinessDashboard /> : <Navigate to="/login" />} />

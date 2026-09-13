@@ -20,7 +20,7 @@ export default function PageShell({ title, children }: PageShellProps) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link to={home} className="text-xl font-bold text-teal-700">TRAVELX AI</Link>
           <nav className="flex items-center gap-4 text-sm">
-            {user?.role === 'tourist' && <><Link to="/discover">Discover</Link><Link to="/guides-business">Guides</Link><Link to="/planner">Plan a trip</Link><Link to="/my-trips">My trips</Link></>}
+            {user?.role === 'tourist' && <><Link to="/discover">Discover</Link><Link to="/guides-business">Guides</Link><Link to="/services">Services</Link><Link to="/planner">Plan a trip</Link><Link to="/my-trips">My trips</Link></>}
             {user?.role === 'guide' && <><Link to="/guide">Dashboard</Link><Link to="/guide/profile">Profile</Link></>}
             {user?.role === 'business' && <><Link to="/business">Dashboard</Link><Link to="/business/profile">Profile</Link></>}
             {user?.role === 'admin' && <><Link to="/admin">Dashboard</Link><Link to="/admin/discoveries">Discoveries</Link><Link to="/admin/people">People</Link><Link to="/admin/analytics">Analytics</Link></>}

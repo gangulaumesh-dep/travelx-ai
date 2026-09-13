@@ -81,6 +81,35 @@ app.post('/api/auth/login', asyncRoute(async (req, res) => {
 app.get('/api/auth/verify', auth, (_req, res) => res.json({ success: true }));
 app.post('/api/auth/logout', (_req, res) => res.json({ success: true }));
 
+app.get('/api/places', asyncRoute(async (req, res) => {
+  const destination = String(req.query.destination || '').trim();
+  const params: unknown[] = []; const where = destination ? 'WHERE city ILIKE $1' : '';
+  if (destination) params.push(`%${destination}%`);
+  res.json({ items: await rows(`SELECT * FROM places ${where} ORDER BY is_featured DESC, rating DESC, name ASC`, params) });
+}));
+app.get('/api/weather', asyncRoute(async (req, res) => {
+  const city = String(req.query.city || 'Hyderabad');
+  res.json({ city, provider: process.env.OPENWEATHER_API_KEY ? 'provider-ready' : 'demo-fallback', forecast: [{ day: 'Today', condition: 'Partly cloudy', temperature_c: 29, rain_probability: 20 }, { day: 'Tomorrow', condition: 'Sunny', temperature_c: 30, rain_probability: 10 }] });
+}));
+app.get('/api/travel-services', asyncRoute(async (req, res) => {
+  const type = String(req.query.type || '').trim(); const params: unknown[] = []; const where = type ? 'WHERE service_type=$1 AND is_active=TRUE' : 'WHERE is_active=TRUE';
+  if (type) params.push(type);
+  res.json({ items: await rows(`SELECT * FROM travel_services ${where} ORDER BY service_type, price_from NULLS LAST`, params) });
+}));
+app.get('/api/hospitals', asyncRoute(async (req, res) => {
+  const city = String(req.query.city || '').trim(); const params: unknown[] = []; const where = city ? 'WHERE city ILIKE $1 AND is_active=TRUE' : 'WHERE is_active=TRUE';
+  if (city) params.push(`%${city}%`);
+  res.json({ items: await rows(`SELECT * FROM hospitals ${where} ORDER BY name`, params) });
+}));
+app.post('/api/reservations', auth, roles('tourist'), asyncRoute(async (req: AuthRequest, res) => {
+  const { service_id, title, description, start_date, end_date, total_cost } = req.body;
+  if (!service_id || !title || !start_date) return res.status(400).json({ error: 'Service, title, and start date are required' });
+  const service = await rows('SELECT * FROM travel_services WHERE id=$1 AND is_active=TRUE', [service_id]);
+  if (!service[0]) return res.status(404).json({ error: 'Travel service not found' });
+  const result = await rows('INSERT INTO bookings (tourist_id,service_id,booking_type,title,description,start_date,end_date,total_cost) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [req.user?.id, service_id, service[0].service_type, title, description || null, start_date, end_date || null, total_cost || service[0].price_from || null]);
+  res.status(201).json(result[0]);
+}));
+
 app.get('/api/discoveries', asyncRoute(async (req, res) => {
   const params: unknown[] = []; const filters: string[] = [];
   if (req.query.status) { params.push(req.query.status); filters.push(`d.status = $${params.length}`); }
@@ -118,11 +147,18 @@ app.post('/api/trips', auth, asyncRoute(async (req: AuthRequest, res) => { const
 app.post('/api/trips/generate', auth, asyncRoute(async (req: AuthRequest, res) => {
   const destination = String(req.body.destination || '').trim(); const count = Math.min(Math.max(Number(req.body.days) || 3, 1), 14);
   if (!destination) return res.status(400).json({ error: 'Destination is required' });
+  const placeRows = await rows<{ id: string; name: string; category: string; description: string }>('SELECT id,name,category,description FROM places WHERE city ILIKE $1 ORDER BY is_featured DESC,rating DESC,name ASC', [`%${destination}%`]);
+  const relevant = placeRows.length || 1;
+  const included = Math.min(placeRows.length, count * 2);
+  const coverage = Math.min(100, Math.round((included / relevant) * 100));
   const start = new Date(); const end = new Date(start); end.setDate(start.getDate() + count - 1);
-  const days = Array.from({ length: count }, (_, index) => ({ day_number: index + 1, day_date: new Date(start.getTime() + index * 86400000).toISOString().slice(0, 10), morning_activity: `Explore a landmark in ${destination}`, afternoon_activity: `Try local food and culture in ${destination}`, evening_activity: `Relax and review tomorrow's plans`, notes: 'Rule-based itinerary; add an AI provider key for richer recommendations.' }));
+  const days = Array.from({ length: count }, (_, index) => {
+    const first = placeRows[index * 2]; const second = placeRows[index * 2 + 1];
+    return { day_number: index + 1, day_date: new Date(start.getTime() + index * 86400000).toISOString().slice(0, 10), morning_activity: first ? `Visit ${first.name}` : `Explore a landmark in ${destination}`, afternoon_activity: second ? `Discover ${second.name}` : `Try local food and culture in ${destination}`, evening_activity: `Relax and review tomorrow's plans`, notes: 'Rule-based itinerary; add an AI provider key for richer recommendations.' };
+  });
   const trip = await rows('INSERT INTO trips (tourist_id,destination,title,start_date,end_date,travel_style,number_of_travelers,interests,status,generated_by_ai,ai_generation_data) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *', [req.user?.id, destination, `Trip to ${destination}`, start.toISOString().slice(0, 10), end.toISOString().slice(0, 10), req.body.travel_style || 'balanced', req.body.number_of_travelers || 1, req.body.interests || [], 'draft', false, JSON.stringify({ provider: 'rule-based-fallback' })]);
   for (const day of days) await pool.query('INSERT INTO trip_days (trip_id,day_number,day_date,morning_activity,afternoon_activity,evening_activity,notes) VALUES ($1,$2,$3,$4,$5,$6,$7)', [trip[0].id, day.day_number, day.day_date, day.morning_activity, day.afternoon_activity, day.evening_activity, day.notes]);
-  res.status(201).json({ trip: { ...trip[0], days }, provider: 'rule-based-fallback' });
+  res.status(201).json({ trip: { ...trip[0], days, metrics: { relevant_places: relevant, included_places: included, coverage_percent: coverage, remaining_places: Math.max(0, relevant - included), extra_days: Math.max(0, Math.ceil((relevant - included) / 2)) }, directions_url: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}` }, provider: 'rule-based-fallback' });
 }));
 app.patch('/api/trips/:id', auth, asyncRoute(async (req: AuthRequest, res) => { const allowed = ['title','description','budget','status','travel_style']; const keys = Object.keys(req.body).filter((key) => allowed.includes(key)); if (!keys.length) return res.status(400).json({ error: 'No editable fields provided' }); if (req.body.status && !['draft', 'saved', 'completed', 'cancelled'].includes(req.body.status)) return res.status(400).json({ error: 'Invalid trip status' }); const values = keys.map((key) => req.body[key]); values.push(req.params.id, req.user?.id); const set = keys.map((key, i) => `${key}=$${i + 1}`).join(','); const result = await rows(`UPDATE trips SET ${set},updated_at=NOW() WHERE id=$${keys.length + 1} AND tourist_id=$${keys.length + 2} RETURNING *`, values); if (!result[0]) return res.status(404).json({ error: 'Trip not found' }); res.json(result[0]); }));
 app.delete('/api/trips/:id', auth, asyncRoute(async (req: AuthRequest, res) => { const result = await rows('DELETE FROM trips WHERE id=$1 AND tourist_id=$2 RETURNING id', [req.params.id, req.user?.id]); if (!result[0]) return res.status(404).json({ error: 'Trip not found' }); res.status(204).send(); }));

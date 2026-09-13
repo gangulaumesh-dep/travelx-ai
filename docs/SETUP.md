@@ -76,6 +76,10 @@ generator by default; no AI provider key is required to run the MVP.
 Run the migration again after pulling schema changes such as `business_services`;
 the migration script applies the complete schema to a fresh database.
 
+The demo seed also adds Indian places, travel service examples, and Hyderabad
+hospital contacts. Re-run `npm run migrate` and then `npm run seed` for a fresh
+demo database after schema changes.
+
 Discovery submissions accept up to five JPEG, PNG, or WebP images. In development
 they are stored in `backend/uploads` and served by the API at `/uploads/...`.
 Keep that directory on persistent storage in production.
