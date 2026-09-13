@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import TouristDashboard from './pages/tourist/Dashboard';
 import DiscoverPage from './pages/tourist/Discover';
+import DiscoveryDetail from './pages/tourist/DiscoveryDetail';
 import DiscoverNewPlace from './pages/tourist/DiscoverNewPlace';
 import TripPlanner from './pages/tourist/TripPlanner';
 import MyTrips from './pages/tourist/MyTrips';
@@ -56,6 +57,7 @@ function AppContent() {
         <Route path="/register" element={isAuthenticated ? <Navigate to={`/${user?.role}`} /> : <Register />} />
         <Route path="/tourist" element={isAuthenticated && user?.role === 'tourist' ? <TouristDashboard /> : <Navigate to="/login" />} />
         <Route path="/discover" element={isAuthenticated && user?.role === 'tourist' ? <DiscoverPage /> : <Navigate to="/login" />} />
+        <Route path="/discover/:id" element={isAuthenticated && user?.role === 'tourist' ? <DiscoveryDetail /> : <Navigate to="/login" />} />
         <Route path="/discover/new" element={isAuthenticated && user?.role === 'tourist' ? <DiscoverNewPlace /> : <Navigate to="/login" />} />
         <Route path="/planner" element={isAuthenticated && user?.role === 'tourist' ? <TripPlanner /> : <Navigate to="/login" />} />
         <Route path="/my-trips" element={isAuthenticated && user?.role === 'tourist' ? <MyTrips /> : <Navigate to="/login" />} />

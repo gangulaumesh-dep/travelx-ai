@@ -5,6 +5,9 @@ import dotenv from 'dotenv';
 import { Pool, QueryResultRow } from 'pg';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -31,6 +34,14 @@ app.use((req, res, next) => {
   return next();
 });
 app.use(express.json({ limit: '2mb' }));
+const uploadDirectory = path.resolve(process.cwd(), 'uploads');
+fs.mkdirSync(uploadDirectory, { recursive: true });
+app.use('/uploads', express.static(uploadDirectory));
+const imageUpload = multer({
+  dest: uploadDirectory,
+  limits: { files: 5, fileSize: Number(process.env.MAX_FILE_SIZE || 5242880) },
+  fileFilter: (_req, file, callback) => callback(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)),
+});
 
 interface AuthRequest extends Request { user?: { id: string; role: string; email: string } }
 const asyncRoute = (handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) =>
@@ -74,15 +85,23 @@ app.get('/api/discoveries', asyncRoute(async (req, res) => {
   const params: unknown[] = []; const filters: string[] = [];
   if (req.query.status) { params.push(req.query.status); filters.push(`d.status = $${params.length}`); }
   if (req.query.category) { params.push(req.query.category); filters.push(`d.category = $${params.length}`); }
+  if (req.query.city) { params.push(req.query.city); filters.push(`d.city ILIKE $${params.length}`); params[params.length - 1] = `%${String(req.query.city)}%`; }
   const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
   const items = await rows('SELECT d.*, COALESCE(json_agg(di) FILTER (WHERE di.id IS NOT NULL), \'[]\') AS images FROM discoveries d LEFT JOIN discovery_images di ON di.discovery_id=d.id ' + where + ' GROUP BY d.id ORDER BY d.created_at DESC', params);
   res.json({ items });
 }));
-app.get('/api/discoveries/:id', asyncRoute(async (req, res) => { const result = await rows('SELECT * FROM discoveries WHERE id=$1', [req.params.id]); if (!result[0]) return res.status(404).json({ error: 'Discovery not found' }); res.json(result[0]); }));
-app.post('/api/discoveries', auth, asyncRoute(async (req: AuthRequest, res) => {
+app.get('/api/discoveries/:id', asyncRoute(async (req, res) => { const result = await rows("SELECT d.*, COALESCE(json_agg(di) FILTER (WHERE di.id IS NOT NULL), '[]') AS images FROM discoveries d LEFT JOIN discovery_images di ON di.discovery_id=d.id WHERE d.id=$1 GROUP BY d.id", [req.params.id]); if (!result[0]) return res.status(404).json({ error: 'Discovery not found' }); res.json(result[0]); }));
+app.post('/api/discoveries', auth, imageUpload.array('images', 5), asyncRoute(async (req: AuthRequest, res) => {
   const { place_name, category, description, city, state, latitude, longitude } = req.body;
   if (!place_name || !description) return res.status(400).json({ error: 'Place name and description are required' });
   const result = await rows('INSERT INTO discoveries (submitted_by,place_name,category,description,city,state,latitude,longitude) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [req.user?.id, place_name, category, description, city, state, latitude, longitude]);
+  const files = (req.files || []) as Express.Multer.File[];
+  for (const [index, file] of files.entries()) {
+    const extension = path.extname(file.originalname).toLowerCase() || '.jpg';
+    const renamedPath = `${file.path}${extension}`;
+    fs.renameSync(file.path, renamedPath);
+    await pool.query('INSERT INTO discovery_images (discovery_id,image_url,uploaded_by,is_primary) VALUES ($1,$2,$3,$4)', [result[0].id, `${process.env.SERVER_URL || `http://localhost:${PORT}`}/uploads/${path.basename(renamedPath)}`, req.user?.id, index === 0]);
+  }
   res.status(201).json(result[0]);
 }));
 app.patch('/api/discoveries/:id/verify', auth, roles('admin'), asyncRoute(async (req: AuthRequest, res) => {
@@ -105,7 +124,7 @@ app.post('/api/trips/generate', auth, asyncRoute(async (req: AuthRequest, res) =
   for (const day of days) await pool.query('INSERT INTO trip_days (trip_id,day_number,day_date,morning_activity,afternoon_activity,evening_activity,notes) VALUES ($1,$2,$3,$4,$5,$6,$7)', [trip[0].id, day.day_number, day.day_date, day.morning_activity, day.afternoon_activity, day.evening_activity, day.notes]);
   res.status(201).json({ trip: { ...trip[0], days }, provider: 'rule-based-fallback' });
 }));
-app.patch('/api/trips/:id', auth, asyncRoute(async (req: AuthRequest, res) => { const allowed = ['title','description','budget','status','travel_style']; const keys = Object.keys(req.body).filter((key) => allowed.includes(key)); if (!keys.length) return res.status(400).json({ error: 'No editable fields provided' }); const values = keys.map((key) => req.body[key]); values.push(req.params.id, req.user?.id); const set = keys.map((key, i) => `${key}=$${i + 1}`).join(','); const result = await rows(`UPDATE trips SET ${set},updated_at=NOW() WHERE id=$${keys.length + 1} AND tourist_id=$${keys.length + 2} RETURNING *`, values); if (!result[0]) return res.status(404).json({ error: 'Trip not found' }); res.json(result[0]); }));
+app.patch('/api/trips/:id', auth, asyncRoute(async (req: AuthRequest, res) => { const allowed = ['title','description','budget','status','travel_style']; const keys = Object.keys(req.body).filter((key) => allowed.includes(key)); if (!keys.length) return res.status(400).json({ error: 'No editable fields provided' }); if (req.body.status && !['draft', 'saved', 'completed', 'cancelled'].includes(req.body.status)) return res.status(400).json({ error: 'Invalid trip status' }); const values = keys.map((key) => req.body[key]); values.push(req.params.id, req.user?.id); const set = keys.map((key, i) => `${key}=$${i + 1}`).join(','); const result = await rows(`UPDATE trips SET ${set},updated_at=NOW() WHERE id=$${keys.length + 1} AND tourist_id=$${keys.length + 2} RETURNING *`, values); if (!result[0]) return res.status(404).json({ error: 'Trip not found' }); res.json(result[0]); }));
 app.delete('/api/trips/:id', auth, asyncRoute(async (req: AuthRequest, res) => { const result = await rows('DELETE FROM trips WHERE id=$1 AND tourist_id=$2 RETURNING id', [req.params.id, req.user?.id]); if (!result[0]) return res.status(404).json({ error: 'Trip not found' }); res.status(204).send(); }));
 
 app.get('/api/guides', asyncRoute(async (_req, res) => { res.json({ items: await rows("SELECT u.id,u.email,u.first_name,u.last_name,g.* FROM users u JOIN guide_profiles g ON g.user_id=u.id WHERE u.is_active=TRUE AND g.verification_status='verified'") }); }));
@@ -122,6 +141,6 @@ app.get('/api/admin/guides', auth, roles('admin'), asyncRoute(async (_req, res) 
 app.get('/api/admin/analytics', auth, roles('admin'), asyncRoute(async (_req, res) => { const result = await rows('SELECT role,COUNT(*)::int AS count FROM users GROUP BY role'); res.json({ usersByRole: result }); }));
 
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
-app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => { console.error(error); res.status(500).json({ error: 'Internal Server Error' }); });
+app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => { console.error(error); if (error instanceof multer.MulterError || error.message === 'Unexpected field') return res.status(400).json({ error: 'Upload must contain up to five supported images, each under the configured size limit' }); res.status(500).json({ error: 'Internal Server Error' }); });
 if (require.main === module) app.listen(PORT, () => console.log(`TRAVELX AI API listening on http://localhost:${PORT}`));
 export { app, pool };
