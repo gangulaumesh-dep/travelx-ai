@@ -130,6 +130,25 @@ app.delete('/api/trips/:id', auth, asyncRoute(async (req: AuthRequest, res) => {
 app.get('/api/guides', asyncRoute(async (_req, res) => { res.json({ items: await rows("SELECT u.id,u.email,u.first_name,u.last_name,g.* FROM users u JOIN guide_profiles g ON g.user_id=u.id WHERE u.is_active=TRUE AND g.verification_status='verified'") }); }));
 app.get('/api/guides/:id', asyncRoute(async (req, res) => { const result = await rows('SELECT u.id,u.email,u.first_name,u.last_name,g.* FROM users u JOIN guide_profiles g ON g.user_id=u.id WHERE u.id=$1', [req.params.id]); if (!result[0]) return res.status(404).json({ error: 'Guide not found' }); res.json(result[0]); }));
 app.patch('/api/guides/me', auth, roles('guide'), asyncRoute(async (req: AuthRequest, res) => { const result = await rows('UPDATE guide_profiles SET bio=COALESCE($1,bio),expertise=COALESCE($2,expertise),languages=COALESCE($3,languages),hourly_rate=COALESCE($4,hourly_rate),updated_at=NOW() WHERE user_id=$5 RETURNING *', [req.body.bio, req.body.expertise, req.body.languages, req.body.hourly_rate, req.user?.id]); res.json(result[0]); }));
+app.get('/api/guides/me', auth, roles('guide'), asyncRoute(async (req: AuthRequest, res) => { const result = await rows('SELECT u.id,u.email,u.first_name,u.last_name,u.phone,g.* FROM users u JOIN guide_profiles g ON g.user_id=u.id WHERE u.id=$1', [req.user?.id]); if (!result[0]) return res.status(404).json({ error: 'Guide profile not found' }); res.json(result[0]); }));
+app.get('/api/bookings', auth, asyncRoute(async (req: AuthRequest, res) => {
+  const condition = req.user?.role === 'guide' ? 'b.guide_id=$1' : 'b.tourist_id=$1';
+  const result = await rows(`SELECT b.*, tu.first_name AS tourist_first_name, tu.last_name AS tourist_last_name, gu.first_name AS guide_first_name, gu.last_name AS guide_last_name FROM bookings b JOIN users tu ON tu.id=b.tourist_id LEFT JOIN users gu ON gu.id=b.guide_id WHERE ${condition} ORDER BY b.created_at DESC`, [req.user?.id]);
+  res.json({ items: result });
+}));
+app.post('/api/bookings', auth, roles('tourist'), asyncRoute(async (req: AuthRequest, res) => {
+  const { guide_id, title, description, start_date, end_date, duration_hours } = req.body;
+  if (!guide_id || !title || !start_date) return res.status(400).json({ error: 'Guide, title, and start date are required' });
+  const guide = await rows('SELECT user_id FROM guide_profiles WHERE user_id=$1 AND verification_status=$2', [guide_id, 'verified']);
+  if (!guide[0]) return res.status(404).json({ error: 'Verified guide not found' });
+  const result = await rows('INSERT INTO bookings (tourist_id,guide_id,booking_type,title,description,start_date,end_date,duration_hours) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [req.user?.id, guide_id, 'guide', title, description || null, start_date, end_date || null, duration_hours || null]);
+  res.status(201).json(result[0]);
+}));
+app.patch('/api/bookings/:id/status', auth, roles('guide'), asyncRoute(async (req: AuthRequest, res) => {
+  if (!['confirmed', 'cancelled', 'completed'].includes(req.body.status)) return res.status(400).json({ error: 'Invalid booking status' });
+  const result = await rows('UPDATE bookings SET status=$1,updated_at=NOW() WHERE id=$2 AND guide_id=$3 RETURNING *', [req.body.status, req.params.id, req.user?.id]);
+  if (!result[0]) return res.status(404).json({ error: 'Booking not found' }); res.json(result[0]);
+}));
 app.get('/api/businesses', asyncRoute(async (_req, res) => { res.json({ items: await rows("SELECT u.id,u.email,u.first_name,u.last_name,b.* FROM users u JOIN business_profiles b ON b.user_id=u.id WHERE u.is_active=TRUE AND b.verification_status='verified'") }); }));
 app.get('/api/businesses/:id', asyncRoute(async (req, res) => { const result = await rows('SELECT u.id,u.email,b.* FROM users u JOIN business_profiles b ON b.user_id=u.id WHERE u.id=$1', [req.params.id]); if (!result[0]) return res.status(404).json({ error: 'Business not found' }); res.json(result[0]); }));
 app.patch('/api/businesses/me', auth, roles('business'), asyncRoute(async (req: AuthRequest, res) => { const result = await rows('UPDATE business_profiles SET business_name=COALESCE($1,business_name),category=COALESCE($2,category),description=COALESCE($3,description),phone=COALESCE($4,phone),website=COALESCE($5,website),address=COALESCE($6,address),city=COALESCE($7,city),state=COALESCE($8,state),updated_at=NOW() WHERE user_id=$9 RETURNING *', [req.body.business_name, req.body.category, req.body.description, req.body.phone, req.body.website, req.body.address, req.body.city, req.body.state, req.user?.id]); res.json(result[0]); }));

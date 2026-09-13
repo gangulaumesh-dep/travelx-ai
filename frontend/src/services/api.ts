@@ -35,7 +35,8 @@ export const tripsAPI = {
   update: (id: string, data: Record<string, unknown>) => api.patch(`/trips/${id}`, data),
   delete: (id: string) => api.delete(`/trips/${id}`),
 };
-export const guidesAPI = { getAll: (params?: Record<string, unknown>) => api.get('/guides', { params }), getById: (id: string) => api.get(`/guides/${id}`), updateProfile: (data: Record<string, unknown>) => api.patch('/guides/me', data) };
+export const guidesAPI = { getAll: (params?: Record<string, unknown>) => api.get('/guides', { params }), getById: (id: string) => api.get(`/guides/${id}`), getMe: () => api.get('/guides/me'), updateProfile: (data: Record<string, unknown>) => api.patch('/guides/me', data) };
+export const bookingsAPI = { getAll: () => api.get('/bookings'), create: (data: Record<string, unknown>) => api.post('/bookings', data), updateStatus: (id: string, status: string) => api.patch(`/bookings/${id}/status`, { status }) };
 export const businessesAPI = { getAll: (params?: Record<string, unknown>) => api.get('/businesses', { params }), getById: (id: string) => api.get(`/businesses/${id}`), updateProfile: (data: Record<string, unknown>) => api.patch('/businesses/me', data) };
 export const adminAPI = { getStats: () => api.get('/admin/stats'), getPendingDiscoveries: (params?: Record<string, unknown>) => api.get('/admin/discoveries/pending', { params }), getUsers: (params?: Record<string, unknown>) => api.get('/admin/users', { params }), getGuides: (params?: Record<string, unknown>) => api.get('/admin/guides', { params }), getAnalytics: () => api.get('/admin/analytics') };
 export default api;
